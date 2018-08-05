@@ -1,0 +1,34 @@
+FROM node:8
+
+RUN apt-get update \
+	&& apt-get -y upgrade \
+  	&& apt-get install -y python3-pip python3-dev python python-pip python-dev python3-tk python-tk\
+  	&& pip install virtualenv \
+  	&& pip install -U pip 
+
+RUN pip install dill scipy numpy pip-tools
+RUN pip3 install dill pip-tools
+
+
+RUN mkdir /host ; \
+    chown -R node:node /host ; \
+    chmod 777 /host 
+
+COPY run.sh /usr/bin/run.sh
+RUN chmod 755 /usr/bin/run.sh
+
+RUN mkdir /home/node/.npm-global ; \
+    mkdir -p /home/node/app/export ; \
+    chown -R node:node /home/node/app ; \
+    chown -R node:node /home/node/app/export ; \
+    chown -R node:node /home/node/.npm-global
+ENV PATH=/home/node/.npm-global/bin:$PATH
+ENV NPM_CONFIG_PREFIX=/home/node/.npm-global
+
+WORKDIR /home/node/app
+
+ADD package.json /home/node/app
+
+RUN npm install --unsafe-perm
+
+COPY index.js /home/node/app

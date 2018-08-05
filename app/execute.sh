@@ -1,0 +1,1 @@
+docker run -v /Volumes/MacintoshHD/Users/Andy/jupyter_extension_iexec/iexec/apps/output:/host -w /host jupyter run.sh QmegSLpBGBgZ3PSEPMTnEnHHL654tea1xxx4FouptJpBPV
