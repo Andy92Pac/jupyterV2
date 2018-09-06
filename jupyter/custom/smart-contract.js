@@ -11,7 +11,19 @@ var address = "0x9c69bA8dF47bFA4652617B68fCD590CecF3C6eff";
 var MyContract = web3.eth.contract(abi);
 var ContractInstance = MyContract.at(address);
 
+var dappAddress = "";
+
 sendJob = function(ipfsAddress, cell) {
+
+    var args = [
+          orderId,
+          orderRPC.workerpool,
+          dappAddress, // dappAddress,
+          '0x0000000000000000000000000000000000000000', // dataset
+          this.params,
+          '0x0000000000000000000000000000000000000000', // callback
+          this.$account, // beneficiary
+        ]
 
     ContractInstance.iexecSubmit("run.sh "+ipfsAddress, {
         gas: 100000,

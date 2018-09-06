@@ -32,3 +32,5 @@ ADD package.json /home/node/app
 RUN npm install --unsafe-perm
 
 COPY index.js /home/node/app
+
+ENTRYPOINT ["/usr/bin/run.sh"]

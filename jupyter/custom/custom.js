@@ -1,6 +1,6 @@
 requirejs.config({
 	paths: {
-		'ipfs': 'https://unpkg.com/ipfs@0.28.2/dist/index.min'
+		'ipfs': 'https://unpkg.com/ipfs/dist/index.min'
 	}
 });
 
@@ -33,7 +33,7 @@ define(
 
 					filesAdded.forEach((file) => {
 						console.log('successfully stored', file.hash);
-
+						catFromIpfs(file.hash);
 						callback(file.hash);
 					})
 				})
@@ -51,7 +51,7 @@ define(
 
 						filesAdded.forEach((file) => {
 							console.log('successfully stored', file.hash);
-			      			//catFromIpfs(file.hash);
+			      			catFromIpfs(file.hash);
 			      			callback(file.hash);
 			      		})
 					})

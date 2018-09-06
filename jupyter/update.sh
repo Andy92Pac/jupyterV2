@@ -9,7 +9,7 @@ rm -rf /usr/local/share/jupyter/nbextensions/iexec
 pip install jupyter_contrib_nbextensions
 jupyter contrib nbextension install
 
-jupyter nbextension install jupyter_iexec/iexec
+jupyter nbextension install nbextensions/iexec
 jupyter nbextension enable iexec/jupyter_iexec
 
 jupyter notebook
