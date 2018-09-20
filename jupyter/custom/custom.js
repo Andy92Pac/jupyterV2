@@ -1,6 +1,7 @@
 requirejs.config({
 	paths: {
-		'ipfs': 'https://unpkg.com/ipfs/dist/index.min'
+		'ipfs': 'https://cdn.jsdelivr.net/npm/ipfs/dist/index.min'
+		//'ipfs': 'https://cdnjs.cloudflare.com/ajax/libs/ipfs/0.32.0/index.min'
 	}
 });
 
@@ -13,6 +14,7 @@ define(
 	function(ipfs, contract, iexec) {
 
 		jobArr = [];
+		tmp = null;
 
 		const node = new Ipfs({ repo: 'ipfs-' + Math.random() })
 
@@ -34,7 +36,10 @@ define(
 					filesAdded.forEach((file) => {
 						console.log('successfully stored', file.hash);
 						catFromIpfs(file.hash);
-						callback(file.hash);
+						httpGetAsync("https://ipfs.infura.io/ipfs/"+file.hash, (res) => {
+							console.log(res);
+							callback(file.hash);
+						});
 					})
 				})
 			}
@@ -51,9 +56,12 @@ define(
 
 						filesAdded.forEach((file) => {
 							console.log('successfully stored', file.hash);
-			      			catFromIpfs(file.hash);
-			      			callback(file.hash);
-			      		})
+							catFromIpfs(file.hash);
+							httpGetAsync("https://ipfs.infura.io/ipfs/"+file.hash, (res) => {
+								console.log(res);
+								callback(file.hash);
+							});
+						})
 					})
 				})
 			}
@@ -79,7 +87,7 @@ define(
 			});
 		}
 
-		getResultAndLoad = function(txHash, cell, ipfsHash) {
+		getResultAndLoad = function(txHash, cell) {
 
 			fetchResults(txHash, function(job_output) {
 
@@ -112,9 +120,9 @@ define(
 
 				var loc = [
 				"import dill",
-				"dill.load_session('"+ipfsHash+"')",
+				"dill.load_session('"+txHash+"')",
 				"import os",
-				"os.remove('"+ipfsHash+"')"
+				"os.remove('"+txHash+"')"
 				];
 				var code = loc.join('\n');
 				Jupyter.notebook.kernel.execute(code, callbacks);
@@ -122,9 +130,15 @@ define(
 			});
 		}
 
-		ContractInstance.IexecSubmitCallback({fromBlock:'latest'}, function(err, res) {
+		hubInstance.WorkOrderCompleted({fromBlock:'latest'}, function(err, res) {
 
-			if(web3.eth.accounts[0] != res.args.user) {
+			console.log("WORKORDERCOMPLETED");
+			console.log(res);
+			tmp = res;
+
+			var index = jobArr.map(function(e) { return e.woid; }).indexOf(res.args.woid);
+			console.log(index);
+			if (index == -1) {
 				return;
 			}
 
@@ -135,35 +149,35 @@ define(
 			else {
 				console.log(res);
 
-				console.log(jobArr)
+				console.log(jobArr);
 
-				var index = jobArr.map(function(e) { return e.txHash; }).indexOf(res.args.submitTxHash);
-				console.log(index);
-				if (index == -1) {
-					return;
-				}
+				var txHash = jobArr[index].txHash;
 
 				if (jobArr.length == 1) {
 					node.stop(function() { console.log("node stopped")});
 				}
 
 				var cell = jobArr[index].cell;
-				var ipfsHash = jobArr[index].ipfsHash;
-
-				console.log(ipfsHash);
 
 				jobArr.splice(index, 1);
 
-				getResultAndLoad(res.args.submitTxHash, cell, ipfsHash);
+				getResultAndLoad(txHash, cell);
 			}
 		});
 
-  				//Le code sera encrypté dans le futur
-		/*var hash = store(code, function(hash) {
-				sendJob(hash);
-			});
-			store(code);
-		}*/
+		hubInstance.WorkOrderActivated({fromBlock:'latest'}, function(err, res) {
+
+			console.log("WORKORDERACTIVATED");
+
+			console.log(res);
+
+			var index = jobArr.map(function(e) { return e.txHash; }).indexOf(res.transactionHash);
+			console.log(index);
+
+			jobArr[index].woid = res.args.woid;
+
+
+		});
 	}
 	);
 

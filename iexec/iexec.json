@@ -8,11 +8,20 @@
   },
   "logo": "logo.png",
   "app": {
-    "name": "my-dapp",
-    "price": 1,
+    "name": "jupyter",
+    "price": 0,
     "params": {
       "type": "DOCKER",
-      "envvars": "XWDOCKERIMAGE=hello-world"
+      "envvars": "XWDOCKERIMAGE=andy92pac/jupyter"
+    }
+  },
+  "order": {
+    "buy": {
+      "app": "0x83511d280db9ea73855d3da7965bc9e30f00f7fa",
+      "dataset": "0x0000000000000000000000000000000000000000",
+      "params": {
+        "cmdline": "run.sh QmdTfQQaUq1C5XdD87cEsZPrijjB8NkHJ4V14ngCchAsk8"
+      }
     }
   }
 }

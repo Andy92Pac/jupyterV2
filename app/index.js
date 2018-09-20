@@ -9,12 +9,12 @@ function jsonEscape(str)  {
 	return str.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
 }
 
-node.on('ready', () => {
+node.on('ready', async () => {
 	console.log("ready");
 
 	console.log(hash);
 
-	curl.request({ url: "ipfs.io/ipfs/"+hash }, function(err, res, body) {
+	curl.request({ url: "https://ipfs.infura.io/ipfs/"+hash }, function(err, res, body) {
 		console.log(hash + " request done");
 		console.log(res);
 		console.log(body);
@@ -27,13 +27,16 @@ node.on('ready', () => {
 		var str = data.toString();
 		var obj = JSON.parse(str);
 
-		curl.request({ url: "ipfs.io/ipfs/"+obj.session }, function(err, res, body) {
+		curl.request({ url: "https://ipfs.infura.io/ipfs/"+obj.session }, function(err, res, body) {
 			console.log(obj.session + " request done");
 			console.log(res);
 			console.log(body);
 		});
 
 		node.files.cat(obj.session, (err, data) => {
+			if (err) { 
+				return console.log(err); 
+			}
 			var session_str = data.toString();
 			session_str = jsonEscape(session_str);
 			var session_obj = JSON.parse(session_str);
@@ -126,11 +129,11 @@ node.on('ready', () => {
 
 			}); 
 
-		})
+})
 
-		
 
-	})
+
+})
 
 });
 
