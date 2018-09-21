@@ -18,14 +18,26 @@ var hubAbi = [{"constant":false,"inputs":[{"name":"_categoriesCreator","type":"a
 var hubContract = web3.eth.contract(hubAbi);
 var hubInstance = hubContract.at(hubAddress);
 
-sendJob = function(ipfsAddress, orderId, workerpool, cell) {
+var rlcAddress = "0xc57538846Ec405Ea25Deb00e0f9B29a432D53507";
+var rlcAbi = [ { "constant": true, "inputs": [], "name": "name", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_spender", "type": "address" }, { "name": "_value", "type": "uint256" } ], "name": "approve", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_to", "type": "address" }, { "name": "_value", "type": "uint256" } ], "name": "refill", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "totalSupply", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_from", "type": "address" }, { "name": "_to", "type": "address" }, { "name": "_value", "type": "uint256" } ], "name": "transferFrom", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "decimals", "outputs": [ { "name": "", "type": "uint8" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "initialSupply", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_value", "type": "uint256" } ], "name": "burn", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "version", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_giver", "type": "address" }, { "name": "_spender", "type": "address" }, { "name": "_value", "type": "uint256" } ], "name": "forceApprove", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [ { "name": "_owner", "type": "address" } ], "name": "balanceOf", "outputs": [ { "name": "balance", "type": "uint256" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "owner", "outputs": [ { "name": "", "type": "address" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "symbol", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_to", "type": "address" }, { "name": "_value", "type": "uint256" } ], "name": "transfer", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_spender", "type": "address" }, { "name": "_value", "type": "uint256" }, { "name": "_extraData", "type": "bytes" } ], "name": "approveAndCall", "outputs": [], "payable": false, "type": "function" }, { "constant": true, "inputs": [], "name": "locked", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": true, "inputs": [ { "name": "_owner", "type": "address" }, { "name": "_spender", "type": "address" } ], "name": "allowance", "outputs": [ { "name": "remaining", "type": "uint256" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "_toburn", "type": "address" }, { "name": "_value", "type": "uint256" } ], "name": "forceBurn", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "type": "function" }, { "constant": false, "inputs": [ { "name": "newOwner", "type": "address" } ], "name": "transferOwnership", "outputs": [], "payable": false, "type": "function" }, { "inputs": [ { "name": "faucetAgent1", "type": "address" }, { "name": "faucetAgent2", "type": "address" }, { "name": "faucetAgent3", "type": "address" } ], "payable": false, "type": "constructor" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "from", "type": "address" }, { "indexed": true, "name": "to", "type": "address" }, { "indexed": false, "name": "value", "type": "uint256" } ], "name": "Transfer", "type": "event" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "owner", "type": "address" }, { "indexed": true, "name": "spender", "type": "address" }, { "indexed": false, "name": "value", "type": "uint256" } ], "name": "Approval", "type": "event" } ];
+var rlcContract = web3.eth.contract(rlcAbi);
+var rlcInstance = rlcContract.at(rlcAddress);
+
+sendJob = async function(ipfsAddress, order, cell) {
+
+	var balance = await checkBalance(web3.eth.accounts[0]);
+
+	if(balance < order.value) {
+		var amount = order.value - balance;
+		await deposit(amount);
+	}
 
 	var params = '{"cmdline":"run.sh ' + ipfsAddress + '"}';
 	var beneficiary = web3.eth.accounts[0];
 
 	var args = [
-	orderId,
-	workerpool,
+	order.id,
+	order.workerpool,
     dappAddress, // dappAddress,
     '0x0000000000000000000000000000000000000000', // dataset
     params,
@@ -70,8 +82,38 @@ sendJob = function(ipfsAddress, orderId, workerpool, cell) {
     });
 }
 
+deposit = function(amount) {
+	return new Promise((resolve) => {
+		rlcInstance.approve(hubAddress, amount, (err, res) => {
+			if(err) {
+				alert("Error trying to submit the transaction, open console to get more informations"); 
+				return console.error(err); 
+			}
+			hubInstance.deposit(amount, (err, res) => {
+				if(err) {
+					alert("Error trying to submit the transaction, open console to get more informations"); 
+					return console.error(err); 
+				}
+				resolve();
+			});
+		})
+	})
+}
+
+checkBalance = async function(address) {
+	return new Promise((resolve) => {
+		hubInstance.checkBalance(address, (err, res) => {
+			if(err) {
+				alert("Error trying to submit the transaction, open console to get more informations"); 
+				return console.error(err); 
+			}
+			resolve(res[0].toNumber());
+		});
+	})
+}
+
 getOrdersFromSmartContract = async function() {
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		var orders = [];
 
 		marketplaceInstance.m_orderCount.call((err, nb_order) => {
@@ -105,7 +147,7 @@ getOrdersFromSmartContract = async function() {
 }
 
 getOrdersFromApi = async function() {
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		var orders = [];
 		var count = 0;
 		for(var i=1; i<6; i++) {
@@ -137,7 +179,7 @@ httpGetAsync = function(theUrl, callback)
 }
 
 getOrderByIdFromSmartContract = async function(id) {
-	return new Promise((resolve, reject) => {
+	return new Promise((resolve) => {
 		marketplaceInstance.getMarketOrder(id, (err, order) => {
 			if(err) { console.error(err); }
 			var o = {
