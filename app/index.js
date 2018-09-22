@@ -1,7 +1,6 @@
 const IPFS = require('ipfs');
 const node = new IPFS();
 const fs = require('fs');
-const curl = require('curlrequest');
 
 var hash = process.argv[2];
 
@@ -13,12 +12,10 @@ node.on('ready', async () => {
 
 	var data = await node.files.cat(hash);
 	var str = data.toString();
+	var str_escaped = jsonEscape(str);
 	var obj = JSON.parse(str);
 
-	var session_data = await node.files.cat(obj.session);
-	var session_str = session_data.toString();
-	session_str = jsonEscape(session_str);
-	var session_obj = JSON.parse(session_str);
+	var session_obj = obj.session;
 
 	fs.writeFileSync("/home/node/app/session.pkl", session_obj.content, session_obj.format)
 	

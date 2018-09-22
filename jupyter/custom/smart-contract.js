@@ -29,6 +29,10 @@ sendJob = async function(ipfsAddress, order, cell) {
 
 	if(balance < order.value) {
 		var amount = order.value - balance;
+		var r = confirm("You have to deposit "+amount+" nRLC to continue");
+		if (r != true) {
+			return alert("Not enough nRLC on the account to continue");
+		}
 		await deposit(amount);
 	}
 
