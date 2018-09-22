@@ -3,16 +3,17 @@ FROM jupyter/scipy-notebook
 RUN echo "c.NotebookApp.token = ''" >> /etc/jupyter/jupyter_notebook_config.py \
 	&& echo "c.NotebookApp.disable_check_xsrf = True" >> /etc/jupyter/jupyter_notebook_config.py
 
-RUN git clone https://github.com/Andy92Pac/jupyter_extension_iexec.git
+RUN git clone https://github.com/Andy92Pac/jupyterV2.git
 
 RUN mkdir -p ./.jupyter/custom/ \
-	&& cp jupyter_extension_iexec/custom/custom.js jupyter_extension_iexec/custom/iexec.js jupyter_extension_iexec/custom/smart-contract.js ./.jupyter/custom
+	&& cp jupyterV2/jupyter/custom/custom.js jupyterV2/jupyter/custom/iexec.js jupyterV2/jupyter/custom/smart-contract.js ./.jupyter/custom
 
 RUN pip install jupyter_contrib_nbextensions
 
 RUN jupyter contrib nbextension install --user
 
-RUN cd jupyter_extension_iexec/jupyter_iexec \
+RUN cd jupyterV2/jupyter/ \
+	&& tree \
 	&& jupyter nbextension install iexec --user
 
 RUN jupyter nbextension enable iexec/jupyter_iexec

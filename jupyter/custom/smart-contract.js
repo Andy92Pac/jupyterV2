@@ -42,7 +42,7 @@ sendJob = async function(ipfsAddress, order, cell) {
 	var args = [
 	order.id,
 	order.workerpool,
-    dappAddress, // dappAddress,
+    dappAddress,
     '0x0000000000000000000000000000000000000000', // dataset
     params,
     '0x0000000000000000000000000000000000000000', // callback
