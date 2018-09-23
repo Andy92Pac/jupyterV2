@@ -89,8 +89,7 @@ define(
 
 		getResultAndLoad = function(txHash, cell) {
 
-			fetchResults(txHash, function(job_output) {
-
+			fetchResults(txHash, (job_output) => {
 				cell.clear_output();
 				cell.set_input_prompt('$');
 
@@ -126,9 +125,9 @@ define(
 				];
 				var code = loc.join('\n');
 				Jupyter.notebook.kernel.execute(code, callbacks);
-
 			});
 		}
+
 
 		hubInstance.WorkOrderCompleted({fromBlock:'latest'}, function(err, res) {
 

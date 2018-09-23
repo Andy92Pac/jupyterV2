@@ -76,7 +76,6 @@ define([
                         alert("Unknown python version");
                     }
 
-
                     var cell = Jupyter.notebook.get_selected_cell();
                     var code = cell.get_text();
 
@@ -134,7 +133,7 @@ define([
                 });
             }
 
-            var handler = async function () {
+            var handler_upload = async function () {
 
                 var w = window.open("", "popupWindow", "width=700, height=400, scrollbars=yes");
                 var $w = $(w.document.body);
@@ -165,19 +164,67 @@ define([
 
                 $w.html(myTable);
 
-            };
+            }
 
-            var action = {
+            var handler_reload = function() {
+                var cell = Jupyter.notebook.get_selected_cell();
+                var txt = cell.output_area.outputs[0].text.split("\n")[0];
+                var txHashStartIndex = txt.indexOf("0x");
+                var txHash = txt.substring(txHashStartIndex, txt.length);
+
+                var url = "http://localhost:8888/api/contents/.iexec";
+
+                $.get(url, function(res) {
+                    var obj = JSON.parse(res.content);
+                    var index = obj.map(function(e) { return e.txHash; }).indexOf(txHash);
+                    if (index == -1) { return alert("No work found for this transaction hash : " + txHash); }
+                    if(obj[index].uri) {
+                        getResultAndLoad(obj[index].uri, cell);
+                    }
+                    else {
+                        getResultAndLoad(obj[index].txHash, cell);
+                    }
+                }).fail(() => {
+                    return alert("No .iexec file found");
+                });
+            }
+
+            var handler_download = function() {
+
+            }
+
+            var action_upload = {
                 icon: 'fa-cloud-upload',
                 help    : 'Send job to iExec',
                 help_index : 'zz',
-                handler : handler
+                handler : handler_upload
             };
-            var prefix = 'jupyter_iexec';
-            var action_name = 'submit-iexec';
+            var prefix_upload = 'jupyter_iexec_upload';
+            var action_name_upload = 'submit-iexec';
 
-            var full_action_name = Jupyter.actions.register(action, action_name, prefix);
-            Jupyter.toolbar.add_buttons_group([full_action_name]);
+            var action_reload = {
+                icon: 'fa-refresh',
+                help    : 'Reload iExec result',
+                help_index : 'zz',
+                handler : handler_reload
+            };
+            var prefix_reload = 'jupyter_iexec_reload';
+            var action_name_reload = 'reload-iexec';
+
+            var action_download = {
+                icon: 'fa-download',
+                help    : 'Download iExec result',
+                help_index : 'zz',
+                handler : handler_download
+            };
+            var prefix_download = 'jupyter_iexec_download';
+            var action_name_download = 'download-iexec';
+
+            var full_action_name_upload = Jupyter.actions.register(action_upload, action_name_upload, prefix_upload);
+            var full_action_name_reload = Jupyter.actions.register(action_reload, action_name_reload, prefix_reload);
+            var full_action_name_download = Jupyter.actions.register(action_download, action_name_download, prefix_download);
+
+            Jupyter.toolbar.add_buttons_group([full_action_name_upload, full_action_name_reload, full_action_name_download]);
         }
 
         return {

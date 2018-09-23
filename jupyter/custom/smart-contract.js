@@ -72,6 +72,8 @@ sendJob = async function(ipfsAddress, order, cell) {
 
     	jobArr.push(job);
 
+    	updateJobArr();
+
     	cell.set_input_prompt('*');
     	cell.output_area.handle_output({
     		header: {

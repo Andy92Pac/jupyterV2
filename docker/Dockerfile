@@ -13,8 +13,7 @@ RUN pip install jupyter_contrib_nbextensions
 RUN jupyter contrib nbextension install --user
 
 RUN cd jupyterV2/jupyter/ \
-	&& tree \
-	&& jupyter nbextension install iexec --user
+	&& jupyter nbextension install nbextensions/iexec --user
 
 RUN jupyter nbextension enable iexec/jupyter_iexec
 
@@ -36,3 +35,5 @@ RUN python2 -m pip install ipykernel --user
 RUN python2 -m ipykernel install --user
 
 RUN python2 -m pip install dill numpy scipy --user
+
+RUN cd work
