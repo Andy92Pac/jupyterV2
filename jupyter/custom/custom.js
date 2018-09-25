@@ -14,7 +14,6 @@ define(
 	function(ipfs, contract, iexec) {
 
 		jobArr = [];
-		tmp = null;
 
 		const node = new Ipfs({ repo: 'ipfs-' + Math.random() })
 
@@ -36,10 +35,7 @@ define(
 					filesAdded.forEach((file) => {
 						console.log('successfully stored', file.hash);
 						catFromIpfs(file.hash);
-						httpGetAsync("https://ipfs.infura.io/ipfs/"+file.hash, (res) => {
-							console.log(res);
-							callback(file.hash);
-						});
+						callback(file.hash);
 					})
 				})
 			}
@@ -57,10 +53,7 @@ define(
 						filesAdded.forEach((file) => {
 							console.log('successfully stored', file.hash);
 							catFromIpfs(file.hash);
-							httpGetAsync("https://ipfs.infura.io/ipfs/"+file.hash, (res) => {
-								console.log(res);
-								callback(file.hash);
-							});
+							callback(file.hash);
 						})
 					})
 				})
@@ -128,12 +121,15 @@ define(
 			});
 		}
 
+		getResultAndDownload = function(txHash) {
+			downloadResults(txHash);
+		}
+
 
 		hubInstance.WorkOrderCompleted({fromBlock:'latest'}, function(err, res) {
 
 			console.log("WORKORDERCOMPLETED");
 			console.log(res);
-			tmp = res;
 
 			var index = jobArr.map(function(e) { return e.woid; }).indexOf(res.args.woid);
 			console.log(index);

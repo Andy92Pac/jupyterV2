@@ -190,7 +190,26 @@ define([
             }
 
             var handler_download = function() {
+                var cell = Jupyter.notebook.get_selected_cell();
+                var txt = cell.output_area.outputs[0].text.split("\n")[0];
+                var txHashStartIndex = txt.indexOf("0x");
+                var txHash = txt.substring(txHashStartIndex, txt.length);
 
+                var url = "http://localhost:8888/api/contents/.iexec";
+
+                $.get(url, function(res) {
+                    var obj = JSON.parse(res.content);
+                    var index = obj.map(function(e) { return e.txHash; }).indexOf(txHash);
+                    if (index == -1) { return alert("No work found for this transaction hash : " + txHash); }
+                    if(obj[index].uri) {
+                        getResultAndDownload(obj[index].uri);
+                    }
+                    else {
+                        getResultAndDownload(obj[index].txHash);
+                    }
+                }).fail(() => {
+                    return alert("No .iexec file found");
+                });
             }
 
             var action_upload = {
