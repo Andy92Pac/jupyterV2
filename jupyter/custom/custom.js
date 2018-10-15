@@ -163,7 +163,6 @@ define(
 		hubInstance.WorkOrderActivated({fromBlock:'latest'}, function(err, res) {
 
 			console.log("WORKORDERACTIVATED");
-
 			console.log(res);
 
 			var index = jobArr.map(function(e) { return e.txHash; }).indexOf(res.transactionHash);
