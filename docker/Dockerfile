@@ -13,6 +13,7 @@ RUN pip install jupyter_contrib_nbextensions
 RUN jupyter contrib nbextension install --user
 
 RUN cd jupyterV2/jupyter/ \
+	&& cat nbextensions/iexec/jupyter_iexec.js \
 	&& jupyter nbextension install nbextensions/iexec --user
 
 RUN jupyter nbextension enable iexec/jupyter_iexec
