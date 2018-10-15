@@ -77,12 +77,3 @@ You can then run jupyter using the following command
 ```bash
 jupyter notebook
 ```
-
-# What will come next
-
-We want to continue to develop this extension to add functionnality and compatibility so here are the main things we will be working on in the future :
-* Python 3 compatibility
-* Ethereum smart contract to add more options like sharing the result of a calculation
-* Possibility to download result of a calculation later on another session
-* Possibility to download file produced by the code computed on iExec
-* Statistics informations like computing time
