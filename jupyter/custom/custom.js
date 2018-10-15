@@ -112,9 +112,11 @@ define(
 
 				var loc = [
 				"import dill",
-				"dill.load_session('"+txHash+"')",
+				//"dill.load_session('"+txHash+"')",
+				"dill.load_session('globalsave.pkl')",
 				"import os",
-				"os.remove('"+txHash+"')"
+				//"os.remove('"+txHash+"')"
+				"os.remove('globalsave.pkl')"
 				];
 				var code = loc.join('\n');
 				Jupyter.notebook.kernel.execute(code, callbacks);

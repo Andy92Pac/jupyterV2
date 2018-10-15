@@ -168,8 +168,18 @@ define([
 
             var handler_reload = function() {
                 var cell = Jupyter.notebook.get_selected_cell();
-                var txt = cell.output_area.outputs[0].text.split("\n")[0];
+                if(cell.output_area.outputs.length == 0) {
+                    return alert("You have to select a cell that executed a job previously");
+                }
+                var txt = cell.output_area.outputs[0].text;
+                if(txt == undefined) {
+                    return alert("You have to select a cell that executed a job previously");
+                }
+                txt = txt.split("\n")[0];
                 var txHashStartIndex = txt.indexOf("0x");
+                if(txHashStartIndex == -1) {
+                    return alert("You have to select a cell that executed a job previously");
+                }
                 var txHash = txt.substring(txHashStartIndex, txt.length);
 
                 var url = "http://localhost:8888/api/contents/.iexec";
@@ -191,8 +201,18 @@ define([
 
             var handler_download = function() {
                 var cell = Jupyter.notebook.get_selected_cell();
-                var txt = cell.output_area.outputs[0].text.split("\n")[0];
+                if(cell.output_area.outputs.length == 0) {
+                    return alert("You have to select a cell that executed a job previously");
+                }
+                var txt = cell.output_area.outputs[0].text
+                if(txt == undefined) {
+                    return alert("You have to select a cell that executed a job previously");
+                }
+                txt = txt.split("\n")[0];
                 var txHashStartIndex = txt.indexOf("0x");
+                if(txHashStartIndex == -1) {
+                    return alert("You have to select a cell that executed a job previously");
+                }
                 var txHash = txt.substring(txHashStartIndex, txt.length);
 
                 var url = "http://localhost:8888/api/contents/.iexec";

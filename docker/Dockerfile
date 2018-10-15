@@ -3,6 +3,7 @@ FROM jupyter/scipy-notebook
 RUN echo "c.NotebookApp.token = ''" >> /etc/jupyter/jupyter_notebook_config.py \
 	&& echo "c.NotebookApp.disable_check_xsrf = True" >> /etc/jupyter/jupyter_notebook_config.py
 
+
 RUN git clone https://github.com/Andy92Pac/jupyterV2.git
 
 RUN mkdir -p ./.jupyter/custom/ \
@@ -13,7 +14,6 @@ RUN pip install jupyter_contrib_nbextensions
 RUN jupyter contrib nbextension install --user
 
 RUN cd jupyterV2/jupyter/ \
-	&& cat nbextensions/iexec/jupyter_iexec.js \
 	&& jupyter nbextension install nbextensions/iexec --user
 
 RUN jupyter nbextension enable iexec/jupyter_iexec
@@ -28,13 +28,11 @@ RUN sudo apt-get -y update \
 
 USER jovyan
 
-RUN python2 -m pip install --upgrade pip
+RUN conda install pip 
+
+RUN python2 -m pip install --upgrade pip==9.0.3
 
 RUN python2 -m pip --version
 
 RUN python2 -m pip install ipykernel --user
 RUN python2 -m ipykernel install --user
-
-RUN python2 -m pip install dill numpy scipy --user
-
-RUN cd work
