@@ -2,15 +2,24 @@ var fs = require("fs");
 
 fs.readFile("session.pkl", 'utf8', (errRead, res) => {
 	if(errRead) {
-		fs.writeFile("export/consensus.iexec", errRead, (errWrite) => {
+		fs.writeFile("/home/node/app/export/consensus.iexec", errRead, (errWrite) => {
 			if(errWrite) throw errWrite; 
-			console.log("consensus.iexec file saved");
-			throw errRead;
+			return console.log("consensus.iexec file saved");
+			// throw errRead;
 		});
 	}
-	var count = res.split("\n").length;
-	fs.writeFile("export/consensus.iexec", count, (errWrite) => {
-		if(errWrite) throw errWrite; 
-		console.log("consensus.iexec file saved");
-	});
+	else {
+		var count;
+		if(res) {
+			count = res.split("\n").length;
+		}
+		else {
+			count = 0;
+		}
+		
+		fs.writeFile("/home/node/app/export/consensus.iexec", count, (errWrite) => {
+			if(errWrite) throw errWrite; 
+			return console.log("consensus.iexec file saved");
+		});
+	}
 })
