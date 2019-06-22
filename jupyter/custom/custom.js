@@ -53,6 +53,29 @@ define(
 			return hash;
 		};
 
+		removePinFromIPFS = async (pinToRemove) => {
+			const url = `https://api.pinata.cloud/pinning/removePinFromIPFS`;
+			const body = {
+				ipfs_pin_hash: pinToRemove
+			};
+			var response;
+			try {
+				response = await axios.post(
+					url,
+					body,
+					{
+						headers: {
+							'pinata_api_key': pinataApiKey,
+							'pinata_secret_api_key': pinataSecretApiKey
+						}
+					})
+				return response;
+			} catch (error) {
+				console.log(error);
+				return false;
+			}
+		};
+
 		setupContracts = async () => {
 			if(contracts === null) {
 				let ethProvider = await getEthProvider();

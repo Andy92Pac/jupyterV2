@@ -146,6 +146,7 @@ define([
 
                     sendJobToIexec(hash, cell, (job_output) => {
                         loadOutputAndSession(cell, job_output)
+                        removePinFromIPFS(hash);
                     });
                     cell.clear_output();
                 });
