@@ -7,7 +7,7 @@ RUN echo "c.NotebookApp.token = ''" >> /etc/jupyter/jupyter_notebook_config.py \
 RUN git clone https://github.com/Andy92Pac/jupyterV2.git
 
 RUN mkdir -p ./.jupyter/custom/ \
-	&& cp jupyterV2/jupyter/custom/custom.js jupyterV2/jupyter/custom/iexec.js jupyterV2/jupyter/custom/smart-contract.js ./.jupyter/custom
+	&& cp jupyterV2/jupyter/custom/custom.js jupyterV2/jupyter/custom/iexec.js ./.jupyter/custom
 
 RUN pip install jupyter_contrib_nbextensions
 

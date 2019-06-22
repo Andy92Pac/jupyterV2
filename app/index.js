@@ -1,16 +1,17 @@
-const IPFS = require('ipfs');
-const node = new IPFS();
 const fs = require('fs');
+const curl = require('curlrequest');
 
-var hash = process.argv[2];
+const hash = process.argv[2];
 
 function jsonEscape(str)  {
 	return str.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
 }
 
-node.on('ready', async () => {
+curl.request({
+	url: 'gateway.pinata.cloud/ipfs/'+hash
+}, (err, res) => {
 
-	var data = await node.files.cat(hash);
+	var data = res;
 	var str = data.toString();
 	var str_escaped = jsonEscape(str);
 	var obj = JSON.parse(str);
@@ -18,13 +19,11 @@ node.on('ready', async () => {
 	var session_obj = obj.session;
 
 	fs.writeFileSync("/home/node/app/session.pkl", session_obj.content, session_obj.format)
-	
+
 	var setup_str = "";
 
 	var py_version = "";
-	if(obj.python_version == 3) {
-		py_version = "3";
-	}
+	obj.python_version === 3 ? py_version = '3' : py_version = '';
 
 	setup_str += "virtualenv -p /usr/bin/python" + py_version + " /home/node/app/ENV --system-site-packages";
 	setup_str += "\n/home/node/app/ENV/bin/pip"+ py_version + " install -I pip-tools";
@@ -55,7 +54,6 @@ node.on('ready', async () => {
 
 		fs.writeFileSync("/home/node/app/requirements.in", requirements);
 
-		console.log("zer");
 		setup_str += "\nexport LC_ALL=C.UTF-8\nexport LANG=C.UTF-8";
 		setup_str += "\necho $LC_ALL\necho $LANG"
 		setup_str += "\ncp /home/node/app/requirements.in /home/node/app/export/";
@@ -66,23 +64,15 @@ node.on('ready', async () => {
 
 	setup_str += "\n/home/node/app/ENV/bin/python"+ py_version + " /home/node/app/script.py > /home/node/app/export/output" 
 
-
 	var code = obj.code;
 	code = "import dill\ndill.load_session('/home/node/app/session.pkl')\n" + code; 
 	code += "\nfilename = '/home/node/app/export/globalsave.pkl'\ndill.dump_session(filename)";
 
 	console.log(code);
 
-
 	fs.writeFileSync("/home/node/app/setup_python.sh", setup_str);
 	fs.writeFileSync("/home/node/app/script.py", code);
 
 	console.log("The files were saved!");
-
-	node.stop(() => {
-		console.log("node stopped");
-		process.exit(1);
-	});
-
 });
 

@@ -33,3 +33,8 @@ RUN npm install --unsafe-perm
 
 COPY index.js /home/node/app
 COPY poco.js /home/node/app
+
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -8,6 +8,13 @@ define([
         custom
         ) {
         function load_ipython_extension() {
+            $('<link/>')
+            .attr({
+                rel: 'stylesheet',
+                type: 'text/css',
+                href: requirejs.toUrl('./nbextensions/iexec/jupyter_iexec.css')
+            })
+            .appendTo('head');
 
             function split(str) {
                 var i = str.indexOf(".");
@@ -18,17 +25,9 @@ define([
                     return str;     
             }
 
-
             var storeSession = function(callback) {
 
-                if( !checkMetamaskConnected() ) {
-                    alert("Connect to Metamask first");
-                    return;
-                } 
-
                 var handle_output = function(output) {
-
-
                     var sesPath = "";
 
                     var path = Jupyter.notebook.notebook_path;
@@ -59,11 +58,31 @@ define([
                 Jupyter.notebook.kernel.execute(code, callbacks);
             }
 
-            window.exec = async function(orderId) {
+            var loadOutputAndSession = async function (cell, output) {
+                cell.set_input_prompt('$');
 
-                var order = await getOrderByIdFromSmartContract(orderId);
+                cell.output_area.handle_output({
+                    header: {
+                        msg_type: "stream"
+                    },
+                    content : {
+                        text: output,
+                        name: "iexec"
+                    }
+                });
 
-                storeSession(function(session) {
+                var loc = [
+                "import dill",
+                "dill.load_session('globalsave.pkl')",
+                "import os",
+                "os.remove('globalsave.pkl')"
+                ];
+                var code = loc.join('\n');
+                Jupyter.notebook.kernel.execute(code);
+            }
+
+            var handler_upload = async function () {
+                storeSession(async function(session) {
 
                     var python_version;
                     if(Jupyter.notebook.kernel.name == "python2") {
@@ -85,7 +104,6 @@ define([
 
                     for(var i=0; i < cells.length; i++) {
                         full_code_arr.push(cells[i].get_text());
-
                     }
 
                     var full_code = full_code_arr.join(' ');
@@ -123,113 +141,76 @@ define([
 
                     var obj_str = JSON.stringify(obj);
 
-                    storeToIpfs(obj_str, function(hash) {
-                        console.log(hash);
+                    await setupContracts();
+                    var hash = await pinJSONToIPFS(obj);
 
-                        sendJob(hash, order, cell);
-                        cell.clear_output();
-                    }); 
-
+                    sendJobToIexec(hash, cell, (job_output) => {
+                        loadOutputAndSession(cell, job_output)
+                    });
+                    cell.clear_output();
                 });
             }
 
-            var handler_upload = async function () {
-
-                var w = window.open("", "popupWindow", "width=700, height=400, scrollbars=yes");
-                var $w = $(w.document.body);
-
-                var orders = await getOrdersFromApi();
-
-                var myTable="<table><tr><td style='width: 100px; color: red;'>Category</td>";
-                myTable+="<td style='width: 100px; color: red; text-align: right;'>Trust</td>";
-                myTable+="<td style='width: 100px; color: red; text-align: right;'>Price</td>";
-                myTable+="<td style='width: 100px; color: red; text-align: right;'>Volume</td>";
-                myTable+="<td style='width: 100px; color: red; text-align: right;'>Workerpool</td></tr>";
-
-                myTable+="<tr><td style='width: 100px;                   '>---------------</td>";
-                myTable+="<td     style='width: 100px; text-align: right;'>---------------</td>";
-                myTable+="<td     style='width: 100px; text-align: right;'>---------------</td>";
-                myTable+="<td     style='width: 100px; text-align: right;'>---------------</td>";
-                myTable+="<td     style='width: 100px; text-align: right;'>---------------</td></tr>";
-
-                for (var i=0; i<orders.length; i++) {
-                    myTable+="<tr><td style='width: 100px;'>" + orders[i].category + "</td>";
-                    myTable+="<td style='width: 100px; text-align: right;'>" + orders[i].trust + "</td>";
-                    myTable+="<td style='width: 100px; text-align: right;'>" + orders[i].value + "</td>";
-                    myTable+="<td style='width: 100px; text-align: right;'>" + orders[i].volume + "</td>";
-                    myTable+="<td style='width: 100px; text-align: right;'>" + orders[i].workerpool + "</td>";
-                    myTable+="<td><button onclick='window.opener.exec("+orders[i].marketorderIdx+"); self.close()'>Select</button></td></tr>";
-                }  
-                myTable+="</table>";
-
-                $w.html(myTable);
-
-            }
-
-            var handler_reload = function() {
+            var handler_reload = async function() {
                 var cell = Jupyter.notebook.get_selected_cell();
-                if(cell.output_area.outputs.length == 0) {
-                    return alert("You have to select a cell that executed a job previously");
-                }
-                var txt = cell.output_area.outputs[0].text;
-                if(txt == undefined) {
-                    return alert("You have to select a cell that executed a job previously");
-                }
-                txt = txt.split("\n")[0];
-                var txHashStartIndex = txt.indexOf("0x");
-                if(txHashStartIndex == -1) {
-                    return alert("You have to select a cell that executed a job previously");
-                }
-                var txHash = txt.substring(txHashStartIndex, txt.length);
+                cell.clear_output();
 
-                var url = "http://localhost:8888/api/contents/.iexec";
+                await setupContracts();
 
-                $.get(url, function(res) {
-                    var obj = JSON.parse(res.content);
-                    var index = obj.map(function(e) { return e.txHash; }).indexOf(txHash);
-                    if (index == -1) { return alert("No work found for this transaction hash : " + txHash); }
-                    if(obj[index].uri) {
-                        getResultAndLoad(obj[index].uri, cell);
-                    }
-                    else {
-                        getResultAndLoad(obj[index].txHash, cell);
-                    }
-                }).fail(() => {
-                    return alert("No .iexec file found");
-                });
-            }
+                let deals = await getAccountDeals();
 
-            var handler_download = function() {
-                var cell = Jupyter.notebook.get_selected_cell();
-                if(cell.output_area.outputs.length == 0) {
-                    return alert("You have to select a cell that executed a job previously");
+                var toinsert = cell.output_area.create_output_area();
+                var subarea = $('<div/>').addClass('output_subarea previous_tasks');
+                for(var i=0; i<deals.deals.length; i++) {
+                    let taskid = await getTaskId(deals.deals[i].dealid);
+                    let executionDate = new Date(deals.deals[i].blockTimestamp);
+                    subarea.append(
+                        $("<a>")
+                        .attr("href", "#")
+                        .css('white-space', 'pre')
+                        .attr("taskid", taskid)
+                        .text("Task Id: "+taskid+" - Executed "+executionDate.toLocaleString()+'\n')
+                        .click(function (e) {
+                            loadResult($(this).attr("taskid"), (output) => {
+                                $('.previous_tasks').remove();
+                                var outputArea = cell.output_area.create_output_area();
+                                var subarea = $('<div/>').addClass('output_subarea').attr('id', taskid);
+                                subarea.append(
+                                    $("<span>")
+                                    .text('Reload of Task Id: ')
+                                    );
+                                subarea.append(
+                                    $("<a>")
+                                    .attr("href", "#")
+                                    .addClass('taskid')
+                                    .text(taskid)
+                                    .click(function (e) {
+                                        window.open('https://explorer.iex.ec/kovan/task/'+taskid)
+                                    })
+                                    );
+                                subarea.append(
+                                    $("<span>")
+                                    .text(' ')
+                                    );
+                                subarea.append(
+                                    $("<a>")
+                                    .attr("href", "#")
+                                    .text("Download")
+                                    .click(function (e) {
+                                        downloadResult(taskid);
+                                    })
+                                    );
+                                outputArea.append(subarea);
+                                cell.output_area._safe_append(outputArea);
+                                cell.expand_output();
+                                loadOutputAndSession(cell, output);
+                            });
+                        })
+                        );
                 }
-                var txt = cell.output_area.outputs[0].text
-                if(txt == undefined) {
-                    return alert("You have to select a cell that executed a job previously");
-                }
-                txt = txt.split("\n")[0];
-                var txHashStartIndex = txt.indexOf("0x");
-                if(txHashStartIndex == -1) {
-                    return alert("You have to select a cell that executed a job previously");
-                }
-                var txHash = txt.substring(txHashStartIndex, txt.length);
-
-                var url = "http://localhost:8888/api/contents/.iexec";
-
-                $.get(url, function(res) {
-                    var obj = JSON.parse(res.content);
-                    var index = obj.map(function(e) { return e.txHash; }).indexOf(txHash);
-                    if (index == -1) { return alert("No work found for this transaction hash : " + txHash); }
-                    if(obj[index].uri) {
-                        getResultAndDownload(obj[index].uri);
-                    }
-                    else {
-                        getResultAndDownload(obj[index].txHash);
-                    }
-                }).fail(() => {
-                    return alert("No .iexec file found");
-                });
+                toinsert.append(subarea);
+                cell.output_area._safe_append(toinsert);
+                cell.expand_output();
             }
 
             var action_upload = {
@@ -250,20 +231,10 @@ define([
             var prefix_reload = 'jupyter_iexec_reload';
             var action_name_reload = 'reload-iexec';
 
-            var action_download = {
-                icon: 'fa-download',
-                help    : 'Download iExec result',
-                help_index : 'zz',
-                handler : handler_download
-            };
-            var prefix_download = 'jupyter_iexec_download';
-            var action_name_download = 'download-iexec';
-
             var full_action_name_upload = Jupyter.actions.register(action_upload, action_name_upload, prefix_upload);
             var full_action_name_reload = Jupyter.actions.register(action_reload, action_name_reload, prefix_reload);
-            var full_action_name_download = Jupyter.actions.register(action_download, action_name_download, prefix_download);
 
-            Jupyter.toolbar.add_buttons_group([full_action_name_upload, full_action_name_reload, full_action_name_download]);
+            Jupyter.toolbar.add_buttons_group([full_action_name_upload, full_action_name_reload]);
         }
 
         return {

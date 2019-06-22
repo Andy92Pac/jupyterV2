@@ -10,7 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "async": "^2.6.0",
-    "curlrequest": "^1.0.1",
-    "ipfs": "^0.27.7"
+    "curlrequest": "^1.0.1"
   }
 }

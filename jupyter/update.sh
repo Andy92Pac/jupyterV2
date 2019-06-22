@@ -1,7 +1,7 @@
 #!/bin/bash
 
 jupyter contrib nbextension uninstall
-pip uninstall jupyter_contrib_nbextensions
+y | pip uninstall jupyter_contrib_nbextensions
 
 jupyter nbextensions_configurator disable
 rm -rf /usr/local/share/jupyter/nbextensions/iexec

@@ -1,179 +1,207 @@
 requirejs.config({
 	paths: {
-		'ipfs': 'https://cdn.jsdelivr.net/npm/ipfs/dist/index.min'
-		//'ipfs': 'https://cdnjs.cloudflare.com/ajax/libs/ipfs/0.32.0/index.min'
+		'axios': 'https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min',
+		'notify': 'https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min'
 	}
 });
 
 define(
 	[
-	'ipfs',
-	'custom/smart-contract',
+	'axios',
+	'notify',
 	'custom/iexec'
 	],
-	function(ipfs, contract, iexec) {
+	function(axios, notify, iexec) {
+
+		$.notify.addStyle('confirmation', {
+			html: 
+			"<div>" +
+			"<div class='clearfix'>" +
+			"<div class='title' data-notify-html='title'/>" +
+			"<div class='buttons'>" +
+			"<button class='no'>Cancel</button>" +
+			"<button class='yes' data-notify-text='button'></button>" +
+			"</div>" +
+			"</div>" +
+			"</div>"
+		});
 
 		jobArr = [];
+		contracts = null;
 
-		const node = new Ipfs({ repo: 'ipfs-' + Math.random() })
+		const pinataApiKey = 'ce93613695e675191648';
+		const pinataSecretApiKey = '29e62e3c23f7c2af254b83d4572d6487279f8fba553f07de71bead0e2d12a241';
 
-		node.once('ready', () => {
-			console.log('Online status: ', node.isOnline() ? 'online' : 'offline')
-
-			node.stop(function() { console.log("node stopped")});
-		})
-		
-
-		storeToIpfs = function(code, callback) {
-
-			if(node.isOnline()) {
-				node.files.add(new node.types.Buffer(code), (err, filesAdded) => {
-					if (err) {
-						return console.error('Error - ipfs files add', err, res)
-					}
-
-					filesAdded.forEach((file) => {
-						console.log('successfully stored', file.hash);
-						catFromIpfs(file.hash);
-						callback(file.hash);
-					})
-				})
-			}
-
-			else {
-				node.start(() => {
-
-					console.log('node started');
-
-					node.files.add(new node.types.Buffer(code), (err, filesAdded) => {
-						if (err) {
-							return console.error('Error - ipfs files add', err, res)
+		pinJSONToIPFS = async (JSONBody) => {
+			const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
+			var response;
+			try {
+				response = await axios.post(
+					url,
+					JSONBody,
+					{
+						headers: {
+							'pinata_api_key': pinataApiKey,
+							'pinata_secret_api_key': pinataSecretApiKey
 						}
-
-						filesAdded.forEach((file) => {
-							console.log('successfully stored', file.hash);
-							catFromIpfs(file.hash);
-							callback(file.hash);
-						})
 					})
+			} catch (error) {
+				console.log(error);
+			}
+			
+			let hash = response.data.IpfsHash;
+			return hash;
+		};
+
+		setupContracts = async () => {
+			if(contracts === null) {
+				let ethProvider = await getEthProvider();
+				contracts = getContracts(ethProvider);
+			}
+			return;
+		}
+
+		sendJobToIexec = async function (hash, cell, callback) {
+
+			let workerpoolmaxprice = 100;
+			let requester = web3.eth.accounts[0];
+			let beneficiary = web3.eth.accounts[0];
+			let volume = "1";
+			let params = hash;
+			let category = 4;
+			let trust = "0";
+
+			let order = initRequestOrder(
+				workerpoolmaxprice,
+				requester,
+				beneficiary,
+				volume,
+				params,
+				category,
+				trust
+				);
+
+			let appOrderbook = await getAppOrderbook();
+			let workerpoolOrderbook = await getWorkerpoolOrderbook(category.toString());
+
+			let balance = await getAccountBalance(contracts, web3.eth.accounts[0]);
+			if(workerpoolOrderbook.workerpoolOrders[0].order.workerpoolprice > balance.stake) {
+				try {
+					let missingAmount = workerpoolOrderbook.workerpoolOrders[0].order.workerpoolprice - balance.stake;
+
+					await new Promise((resolve) => {
+						$.notify({
+							title: 'You have to deposit '+missingAmount+' nRLC to continue',
+							button: 'Confirm'
+						}, { 
+							style: 'confirmation',
+							autoHide: false,
+							clickToHide: false
+						});
+						$(document).on('click', '.notifyjs-confirmation-base .no', function() {
+							$(this).trigger('notify-hide');
+							return;
+						});
+						$(document).on('click', '.notifyjs-confirmation-base .yes', async function() {
+							$(this).trigger('notify-hide');
+							await deposit(contracts, missingAmount);
+							resolve();
+						});
+					})
+
+				} catch (error) {
+					console.log(error);
+					return alert('Error during deposit, try resending job to iExec');
+				}
+			}
+
+			$.notify('Sign the request order in metamask', 'info');
+			let signedOrder = await signRequestOrder(contracts, order, web3.eth.accounts[0]);
+
+			$.notify('Send the task in metamask', 'info');
+			let deal = await makeADeal(contracts, appOrderbook.appOrders[0].order, workerpoolOrderbook.workerpoolOrders[0].order, signedOrder);
+
+			await showDeal(contracts, deal.dealid);
+
+			let taskid = await getTaskId(deal.dealid);
+
+			var outputArea = cell.output_area.create_output_area();
+			var subarea = $('<div/>').addClass('output_subarea').attr('id', taskid);
+			subarea.append(
+				$("<span>")
+				.text('Task Id: ')
+				);
+			subarea.append(
+				$("<a>")
+				.attr("href", "#")
+				.addClass('taskid')
+				.text(taskid)
+				.click(function (e) {
+					window.open('https://explorer.iex.ec/kovan/task/'+taskid)
 				})
+				);
+			subarea.append(
+				$("<span>")
+				.addClass('status')
+				.text("\nStatus: Unset")
+				);
+			outputArea.append(subarea);
+			cell.output_area._safe_append(outputArea);
+			cell.expand_output();
+
+			let task = await getTask(contracts, taskid);
+			let res = await waitForResult(contracts, taskid, (status) => {
+				var statusText;
+				if (status == 0)
+					statusText = 'Unset';
+				else if (status == 1) 
+					statusText = 'Active';
+				else if (status == 2) 
+					statusText = 'Revealing';
+				else if (status == 3) 
+					statusText = 'Completed';
+				else if (status == 1) 
+					statusText = 'Failed';
+				$('#'+taskid+' .status').text("\nStatus: "+statusText);
+			});
+
+			if(res.status === 4) {
+				$('#'+taskid+' .status').text("\nStatus: Failed");
+				return alert('Task computation failed');
 			}
-		}
 
-		catFromIpfs = function(hash, callback) {
-			node.files.cat(hash, function (err, data) {
-				if (err) {
-					return console.error('Error - ipfs files cat', err, res)
-				}
+			$('#'+taskid+' .status').text("\nStatus: Completed");
+			$.notify('Sign in metamask to load the results', 'info');
+			await loadResult(taskid, (output) => {
+				subarea.append(
+					$("<span>")
+					.text(' ')
+					);
+				subarea.append(
+					$("<a>")
+					.attr("href", "#")
+					.text("Download")
+					.click(function (e) {
+						downloadResult(taskid);
+					})
+					);
 
-				console.log(data.toString())
-			})
-		}
-
-		getFromIpfs = function(hash, callback) {
-			node.files.get(hash, function(err, file) {
-				if (err) {
-					return console.error('Error - ipfs files cat', err)
-				}
-
-				callback(file);
+				callback(output);
 			});
 		}
 
-		getResultAndLoad = function(txHash, cell) {
-
-			fetchResults(txHash, (job_output) => {
-				cell.clear_output();
-				cell.set_input_prompt('$');
-
-				cell.output_area.handle_output({
-					header: {
-						msg_type: "stream"
-					},
-					content : {
-						text: "Transaction Hash : " + txHash + "\n\n" + job_output,
-						name: "iexec"
-					}
-				});
-
-				var handle_output = function(output) {
-
-					console.log("Transaction Hash : " + txHash + "\n\n" + output);
-
-					console.log("done importing globalsave.pkl")	
-
-				};
-
-				var callbacks = {
-					iopub : {
-						output : handle_output,
-					}
-				}
-
-				var loc = [
-				"import dill",
-				//"dill.load_session('"+txHash+"')",
-				"dill.load_session('globalsave.pkl')",
-				"import os",
-				//"os.remove('"+txHash+"')"
-				"os.remove('globalsave.pkl')"
-				];
-				var code = loc.join('\n');
-				Jupyter.notebook.kernel.execute(code, callbacks);
-			});
+		loadResult = async function (taskid, callback) {
+			let result = await downloadResults(contracts, taskid, web3.eth.accounts[0]);
+			await computeResult(result, (output) => callback(output));
 		}
 
-		getResultAndDownload = function(txHash) {
-			downloadResults(txHash);
+		downloadResult = async function (taskid) {
+			let result = await downloadResults(contracts, taskid, web3.eth.accounts[0]);
+			await downloadAsFile(result);
 		}
 
-
-		hubInstance.WorkOrderCompleted({fromBlock:'latest'}, function(err, res) {
-
-			console.log("WORKORDERCOMPLETED");
-			console.log(res);
-
-			var index = jobArr.map(function(e) { return e.woid; }).indexOf(res.args.woid);
-			console.log(index);
-			if (index == -1) {
-				return;
-			}
-
-			if(err) {
-				node.stop(function() { console.log("node stopped")});
-				alert(err);
-			}
-			else {
-				console.log(res);
-
-				console.log(jobArr);
-
-				var txHash = jobArr[index].txHash;
-
-				if (jobArr.length == 1) {
-					node.stop(function() { console.log("node stopped")});
-				}
-
-				var cell = jobArr[index].cell;
-
-				jobArr.splice(index, 1);
-
-				getResultAndLoad(txHash, cell);
-			}
-		});
-
-		hubInstance.WorkOrderActivated({fromBlock:'latest'}, function(err, res) {
-
-			console.log("WORKORDERACTIVATED");
-			console.log(res);
-
-			var index = jobArr.map(function(e) { return e.txHash; }).indexOf(res.transactionHash);
-			console.log(index);
-
-			jobArr[index].woid = res.args.woid;
-
-
-		});
-	}
-	);
-
+		getAccountDeals = async function () {
+			let deals = await getPreviousDeals(web3.eth.accounts[0]);
+			return deals;
+		}
+	});

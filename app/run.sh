@@ -7,4 +7,5 @@ chmod +x /home/node/app/setup_python.sh
 
 node /home/node/app/poco.js
 
-cp -a /home/node/app/export/. /iexec
+cp -a /home/node/app/export/. /iexec_out
+
