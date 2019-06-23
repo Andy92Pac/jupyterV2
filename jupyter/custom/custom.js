@@ -15,10 +15,10 @@ define(
 
 		$.notify.addStyle('confirmation', {
 			html: 
-			"<div>" +
+			"<div style='opacity:0.85;width:200px;background:#F5F5F5;padding:5px;border-radius:10px'>" +
 			"<div class='clearfix'>" +
-			"<div class='title' data-notify-html='title'/>" +
-			"<div class='buttons'>" +
+			"<div class='title' style='width:100px;float:left;margin:10px 0 0 10px;text-align:right' data-notify-html='title'/>" +
+			"<div class='buttons' style='width:70px;float:right;font-size:9px;padding:5px;margin:2px'>" +
 			"<button class='no'>Cancel</button>" +
 			"<button class='yes' data-notify-text='button'></button>" +
 			"</div>" +
@@ -75,6 +75,17 @@ define(
 				return false;
 			}
 		};
+
+		getJSONfromIPFS = async (hash) => {
+			const url = 'https://gateway.pinata.cloud/ipfs/' + hash;
+			try {
+				response = await axios.get(url)
+				return response.data;
+			} catch (error) {
+				console.log(error);
+				return false;
+			}
+		}
 
 		setupContracts = async () => {
 			if(contracts === null) {

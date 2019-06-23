@@ -8,13 +8,6 @@ define([
         custom
         ) {
         function load_ipython_extension() {
-            $('<link/>')
-            .attr({
-                rel: 'stylesheet',
-                type: 'text/css',
-                href: requirejs.toUrl('./nbextensions/iexec/jupyter_iexec.css')
-            })
-            .appendTo('head');
 
             function split(str) {
                 var i = str.indexOf(".");
@@ -156,6 +149,8 @@ define([
                 var cell = Jupyter.notebook.get_selected_cell();
                 cell.clear_output();
 
+                window.cell = cell;
+
                 await setupContracts();
 
                 let deals = await getAccountDeals();
@@ -163,15 +158,21 @@ define([
                 var toinsert = cell.output_area.create_output_area();
                 var subarea = $('<div/>').addClass('output_subarea previous_tasks');
                 for(var i=0; i<deals.deals.length; i++) {
-                    let taskid = await getTaskId(deals.deals[i].dealid);
-                    let executionDate = new Date(deals.deals[i].blockTimestamp);
+                    let deal = deals.deals[i];
+                    let taskid = await getTaskId(deal.dealid);
+                    let executionDate = new Date(deal.blockTimestamp);
                     subarea.append(
                         $("<a>")
                         .attr("href", "#")
                         .css('white-space', 'pre')
                         .attr("taskid", taskid)
+                        .attr("dealid", deal.dealid)
                         .text("Task Id: "+taskid+" - Executed "+executionDate.toLocaleString()+'\n')
-                        .click(function (e) {
+                        .click(async function (e) {
+                            var deal = await showDeal(contracts, $(this).attr("dealid"));
+                            var data = await getJSONfromIPFS(deal.params);
+                            cell.set_text(data.code);
+                            $.notify('Sign in metamask to reload task results', 'info');
                             loadResult($(this).attr("taskid"), (output) => {
                                 $('.previous_tasks').remove();
                                 var outputArea = cell.output_area.create_output_area();
