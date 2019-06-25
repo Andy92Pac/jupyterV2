@@ -8,9 +8,8 @@ function jsonEscape(str)  {
 }
 
 curl.request({
-	url: 'gateway.pinata.cloud/ipfs/'+hash
+	url: 'https://gateway.pinata.cloud/ipfs/'+hash
 }, (err, res) => {
-
 	var data = res;
 	var str = data.toString();
 	var str_escaped = jsonEscape(str);
