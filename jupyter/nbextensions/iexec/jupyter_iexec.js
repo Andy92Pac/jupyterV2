@@ -37,7 +37,6 @@ define([
 
                         callback(res);
                     });
-
                 }
 
                 var callbacks = {
@@ -75,6 +74,12 @@ define([
             }
 
             var handler_upload = async function () {
+
+                var networkId = await web3.eth.net.getId();
+                if(networkId !== 1 && networkId !== 42) {
+                    return $.notify('Incorrect network, switch to Mainnet or Kovan', 'error');
+                }
+
                 storeSession(async function(session) {
 
                     var python_version;
@@ -134,10 +139,13 @@ define([
 
                     var obj_str = JSON.stringify(obj);
 
-                    await setupContracts();
+                    await setupContracts(networkId);
                     var hash = await pinJSONToIPFS(obj);
+                    if(hash === false) {
+                        return $.notify('Failed to upload data to ipfs', 'error');
+                    }
 
-                    sendJobToIexec(hash, cell, (job_output) => {
+                    sendJobToIexec(networkId, hash, cell, (job_output) => {
                         loadOutputAndSession(cell, job_output)
                         removePinFromIPFS(hash);
                     });
@@ -146,14 +154,42 @@ define([
             }
 
             var handler_reload = async function() {
+
+                var networkId = await web3.eth.net.getId();
+                console.log(networkId);
+                if(networkId !== 1 && networkId !== 42) {
+                    return $.notify('Incorrect network, switch to Mainnet or Kovan', 'error');
+                }
+
                 var cell = Jupyter.notebook.get_selected_cell();
+                
+                if(cell.get_text !== '' || cell.output_area.outputs.length > 0) {
+                    await new Promise((resolve) => {
+                        $.notify({
+                            title: 'Selected cell is not empty, still proceed ?',
+                            button: 'Confirm'
+                        }, { 
+                            style: 'confirmation',
+                            autoHide: false,
+                            clickToHide: false
+                        });
+                        $(document).on('click', '.notifyjs-confirmation-base .no', function() {
+                            $(this).trigger('notify-hide');
+                            return;
+                        });
+                        $(document).on('click', '.notifyjs-confirmation-base .yes', async function() {
+                            $(this).trigger('notify-hide');
+                            return resolve();
+                        });
+                    })
+                }
+
                 cell.clear_output();
 
-                window.cell = cell;
+                await setupContracts(networkId);
 
-                await setupContracts();
-
-                let deals = await getAccountDeals();
+                let deals = await getAccountDeals(networkId);
+                console.log(deals);
 
                 var toinsert = cell.output_area.create_output_area();
                 var subarea = $('<div/>').addClass('output_subarea previous_tasks');

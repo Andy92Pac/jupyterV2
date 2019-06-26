@@ -1,7 +1,8 @@
 requirejs.config({
 	paths: {
 		'axios': 'https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min',
-		'notify': 'https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min'
+		'notify': 'https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min',
+		'Web3': 'https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min'
 	}
 });
 
@@ -9,9 +10,13 @@ define(
 	[
 	'axios',
 	'notify',
+	'Web3',
 	'custom/iexec'
 	],
-	function(axios, notify, iexec) {
+	function(axios, notify, Web3, iexec) {
+
+		window.ethereum.autoRefreshOnNetworkChange = false; 
+		window.web3 = new Web3(web3.currentProvider);
 
 		$.notify.addStyle('confirmation', {
 			html: 
@@ -33,7 +38,7 @@ define(
 		const pinataSecretApiKey = '29e62e3c23f7c2af254b83d4572d6487279f8fba553f07de71bead0e2d12a241';
 
 		pinJSONToIPFS = async (JSONBody) => {
-			const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
+			const url = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
 			var response;
 			try {
 				response = await axios.post(
@@ -43,18 +48,20 @@ define(
 						headers: {
 							'pinata_api_key': pinataApiKey,
 							'pinata_secret_api_key': pinataSecretApiKey
-						}
+						},
+						timeout: 10000
 					})
+				console.log(response);	
 			} catch (error) {
 				console.log(error);
+				return false;
 			}
-			
 			let hash = response.data.IpfsHash;
 			return hash;
 		};
 
 		removePinFromIPFS = async (pinToRemove) => {
-			const url = `https://api.pinata.cloud/pinning/removePinFromIPFS`;
+			const url = 'https://api.pinata.cloud/pinning/removePinFromIPFS';
 			const body = {
 				ipfs_pin_hash: pinToRemove
 			};
@@ -87,19 +94,22 @@ define(
 			}
 		}
 
-		setupContracts = async () => {
+		setupContracts = async (chainId) => {
 			if(contracts === null) {
 				let ethProvider = await getEthProvider();
-				contracts = getContracts(ethProvider);
+				console.log(ethProvider);
+				contracts = getContracts(chainId, ethProvider);
 			}
 			return;
 		}
 
-		sendJobToIexec = async function (hash, cell, callback) {
+		sendJobToIexec = async function (chainId, hash, cell, callback) {
+
+			let accounts = await web3.eth.getAccounts();
 
 			let workerpoolmaxprice = 100;
-			let requester = web3.eth.accounts[0];
-			let beneficiary = web3.eth.accounts[0];
+			let requester = accounts[0];
+			let beneficiary = accounts[0];
 			let volume = "1";
 			let params = hash;
 			let category = 4;
@@ -115,10 +125,10 @@ define(
 				trust
 				);
 
-			let appOrderbook = await getAppOrderbook();
-			let workerpoolOrderbook = await getWorkerpoolOrderbook(category.toString());
+			let appOrderbook = await getAppOrderbook(chainId);
+			let workerpoolOrderbook = await getWorkerpoolOrderbook(chainId, category.toString());
 
-			let balance = await getAccountBalance(contracts, web3.eth.accounts[0]);
+			let balance = await getAccountBalance(contracts, accounts[0]);
 			if(workerpoolOrderbook.workerpoolOrders[0].order.workerpoolprice > balance.stake) {
 				try {
 					let missingAmount = workerpoolOrderbook.workerpoolOrders[0].order.workerpoolprice - balance.stake;
@@ -150,7 +160,7 @@ define(
 			}
 
 			$.notify('Sign the request order in metamask', 'info');
-			let signedOrder = await signRequestOrder(contracts, order, web3.eth.accounts[0]);
+			let signedOrder = await signRequestOrder(contracts, order, accounts[0]);
 
 			$.notify('Send the task in metamask', 'info');
 			let deal = await makeADeal(contracts, appOrderbook.appOrders[0].order, workerpoolOrderbook.workerpoolOrders[0].order, signedOrder);
@@ -225,17 +235,22 @@ define(
 		}
 
 		loadResult = async function (taskid, callback) {
-			let result = await downloadResults(contracts, taskid, web3.eth.accounts[0]);
+			let accounts = await web3.eth.getAccounts();
+			let result = await downloadResults(contracts, taskid, accounts[0]);
 			await computeResult(result, (output) => callback(output));
 		}
 
 		downloadResult = async function (taskid) {
-			let result = await downloadResults(contracts, taskid, web3.eth.accounts[0]);
+			let accounts = await web3.eth.getAccounts();
+			let result = await downloadResults(contracts, taskid, accounts[0]);
 			await downloadAsFile(result);
 		}
 
-		getAccountDeals = async function () {
-			let deals = await getPreviousDeals(web3.eth.accounts[0]);
+		getAccountDeals = async function (chainId) {
+			let accounts = await web3.eth.getAccounts();
+			console.log(web3);
+			console.log(accounts[0]);
+			let deals = await getPreviousDeals(chainId, accounts[0]);
 			return deals;
 		}
 	});

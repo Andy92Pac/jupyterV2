@@ -20,12 +20,12 @@
     "name": "Jupyter",
     "type": "DOCKER",
     "multiaddr": "docker.io/andy92pac/jupyter:1.0",
-    "checksum": "0x736d630c78912cd37c10b46d3ad5d1837702971af58672ad157c923572da0a33",
+    "checksum": "0x89ba12eeef487b2cd84e78815389107da339481e15c4d064902f16894e2759f0",
     "mrenclave": ""
   },
   "order": {
     "apporder": {
-      "app": "0xF20Cb3b6D4c203374831dc6d81dAEA4Fb69F8343",
+      "app": "0xCc14d09d4a3a3425Eb777923AcFBce0779fA9488",
       "appprice": 0,
       "volume": 1000000,
       "tag": "0x0000000000000000000000000000000000000000000000000000000000000000",
