@@ -189,7 +189,6 @@ define([
                 await setupContracts(networkId);
 
                 let deals = await getAccountDeals(networkId);
-                console.log(deals);
 
                 var toinsert = cell.output_area.create_output_area();
                 var subarea = $('<div/>').addClass('output_subarea previous_tasks');

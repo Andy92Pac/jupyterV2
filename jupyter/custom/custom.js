@@ -97,7 +97,6 @@ define(
 		setupContracts = async (chainId) => {
 			if(contracts === null) {
 				let ethProvider = await getEthProvider();
-				console.log(ethProvider);
 				contracts = getContracts(chainId, ethProvider);
 			}
 			return;
@@ -248,8 +247,6 @@ define(
 
 		getAccountDeals = async function (chainId) {
 			let accounts = await web3.eth.getAccounts();
-			console.log(web3);
-			console.log(accounts[0]);
 			let deals = await getPreviousDeals(chainId, accounts[0]);
 			return deals;
 		}
