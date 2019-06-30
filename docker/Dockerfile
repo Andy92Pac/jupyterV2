@@ -30,7 +30,7 @@ USER jovyan
 
 RUN conda install pip 
 
-RUN python2 -m pip install --upgrade pip==9.0.3
+RUN python2 -m pip install --upgrade pip==19.1.1
 
 RUN python2 -m pip --version
 
