@@ -3,7 +3,6 @@ FROM jupyter/scipy-notebook
 RUN echo "c.NotebookApp.token = ''" >> /etc/jupyter/jupyter_notebook_config.py \
 	&& echo "c.NotebookApp.disable_check_xsrf = True" >> /etc/jupyter/jupyter_notebook_config.py
 
-
 RUN git clone https://github.com/Andy92Pac/jupyterV2.git
 
 RUN mkdir -p ./.jupyter/custom/ \

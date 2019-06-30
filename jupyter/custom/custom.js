@@ -15,7 +15,9 @@ define(
 	],
 	function(axios, notify, Web3, iexec) {
 
-		window.ethereum.autoRefreshOnNetworkChange = false; 
+		if (window.ethereum)
+			window.ethereum.autoRefreshOnNetworkChange = false; 
+		
 		window.web3 = new Web3(web3.currentProvider);
 
 		$.notify.addStyle('confirmation', {
