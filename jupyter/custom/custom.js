@@ -15,9 +15,6 @@ define(
 	],
 	function(axios, notify, Web3, iexec) {
 
-		if (window.ethereum)
-			window.ethereum.autoRefreshOnNetworkChange = false; 
-		
 		window.web3 = new Web3(web3.currentProvider);
 
 		$.notify.addStyle('confirmation', {
@@ -99,6 +96,15 @@ define(
 		setupContracts = async (chainId) => {
 			if(contracts === null) {
 				let ethProvider = await getEthProvider();
+				if (ethProvider === 0) {
+					return $.notify('Need to install a more recent version of Metamask', 'error');
+				}
+				window.ethereum.autoRefreshOnNetworkChange = false; 
+				window.ethereum.on('accountsChanged', function (accounts) {
+				})
+				window.ethereum.on('networkChanged', function (network) {
+					contracts = getContracts(network.toString(), ethProvider);
+				})
 				contracts = getContracts(chainId, ethProvider);
 			}
 			return;
@@ -156,7 +162,7 @@ define(
 
 				} catch (error) {
 					console.log(error);
-					return alert('Error during deposit, try resending job to iExec');
+					return $.notify('Error during deposit, try resending job to iExec', 'error');
 				}
 			}
 

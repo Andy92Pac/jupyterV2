@@ -7,7 +7,7 @@ define([
         $,
         custom
         ) {
-        function load_ipython_extension() {
+        async function load_ipython_extension() {
 
             function split(str) {
                 var i = str.indexOf(".");
@@ -156,7 +156,7 @@ define([
             var handler_reload = async function() {
 
                 var networkId = await web3.eth.net.getId();
-                console.log(networkId);
+
                 if(networkId !== 1 && networkId !== 42) {
                     return $.notify('Incorrect network, switch to Mainnet or Kovan', 'error');
                 }
