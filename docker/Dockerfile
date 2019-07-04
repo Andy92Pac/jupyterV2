@@ -35,3 +35,5 @@ RUN python2 -m pip --version
 
 RUN python2 -m pip install ipykernel --user
 RUN python2 -m ipykernel install --user
+
+RUN python2 -m pip install dill --user

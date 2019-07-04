@@ -28,18 +28,6 @@ You can then simply run your jupyter notebook with the following command
 docker run -ti --rm -p 8888:8888 andy92pac/jupyter_iexec
 ```
 
-In order to be able to load the pickled session, you have to install the dill package. 
-
-For that you should launch a terminal inside Jupyter : New > Terminal.
-
-You then install the dill package using the command
-
-```bash
-pip2 install dill --user
-```
-
-You can install any package you want to use for your work using the same process.
-
 See https://hub.docker.com/r/andy92pac/jupyter_iexec/
 
 # Set up with existing Jupyter instance
