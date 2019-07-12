@@ -137,21 +137,9 @@ define(
 
 			let selectedWorkerpool = null;
 
-			if(options.bannedWorkerpools.length > 0) {
-				for(var i=0; i<workerpoolOrderbook.workerpoolOrders.length; i++) {
-					if(options.bannedWorkerpools.indexOf(workerpoolOrderbook.workerpoolOrders[i].order.workerpool) < 0) {
-						selectedWorkerpool = workerpoolOrderbook.workerpoolOrders[i];
-					}
-				}
-			}
-			else {
-				selectedWorkerpool = workerpoolOrderbook.workerpoolOrders[0];
-			}
+			selectedWorkerpool = workerpoolOrderbook.workerpoolOrders[0];
 
-			console.log(options);
-			console.log(selectedWorkerpool);
-
-			if(selectedWorkerpool === null) {
+			if(selectedWorkerpool === null || selectedWorkerpool === undefined) {
 				return $.notify("Could not find a workerpool order, try again later", 'error');
 			}
 
@@ -229,23 +217,10 @@ define(
 			let task = null;
 			setTimeout(function() {
 				if(task === null) {
-					$.notify({
-						title: 'Seems like the task is not launching, do you want to try with another workerpool ? ',
-						button: 'Confirm'
-					}, { 
-						style: 'confirmation',
-						autoHide: false,
-						clickToHide: false
-					});
-					$(document).on('click', '.notifyjs-confirmation-base .no', function() {
-						$(this).trigger('notify-hide');
-					});
-					$(document).on('click', '.notifyjs-confirmation-base .yes', async function() {
-						$(this).trigger('notify-hide');
-						return sendJobToIexec(chainId, hash, cell, { bannedWorkerpools: options.bannedWorkerpools.push(selectedWorkerpool.order.workerpool)}, callback);
-					});
+					return $.notify('Seems like the task is not launching, try to send the job manually using the iExec marketplace ','error');
 				}
 			}, 60000);
+			
 			task = await getTask(contracts, taskid);
 			let res = await waitForResult(contracts, taskid, (status) => {
 				var statusText;
