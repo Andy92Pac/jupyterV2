@@ -25,6 +25,8 @@ RUN sudo apt-get -y update \
 	&& sudo apt-get -y update \
 	&& sudo apt-get -y install python-pip
 
+
+
 USER jovyan
 
 RUN conda install pip 
@@ -37,3 +39,6 @@ RUN python2 -m pip install ipykernel --user
 RUN python2 -m ipykernel install --user
 
 RUN python2 -m pip install dill --user
+
+RUN rm -rf work \
+	&& rm -rf jupyterV2

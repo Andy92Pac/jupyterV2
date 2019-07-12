@@ -144,6 +144,9 @@ define(
 			}
 
 			let balance = await getAccountBalance(contracts, accounts[0]);
+
+			let stop = false;
+			
 			if(selectedWorkerpool.order.workerpoolprice > balance.stake) {
 				try {
 					let missingAmount = selectedWorkerpool.order.workerpoolprice - balance.stake;
@@ -168,6 +171,7 @@ define(
 							}
 							catch (error) {
 								console.log(error);
+								stop = true;
 								return $.notify('Error during deposit, try resending job to iExec', 'error');
 							}
 							resolve();
@@ -176,8 +180,13 @@ define(
 
 				} catch (error) {
 					console.log(error);
+					stop = true;
 					return $.notify('Error during deposit, try resending job to iExec', 'error');
 				}
+			}
+
+			if(stop) {
+				return;
 			}
 
 			$.notify('Sign the request order in metamask', 'info');
