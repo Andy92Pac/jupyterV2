@@ -110,7 +110,7 @@ define(
 			return;
 		}
 
-		sendJobToIexec = async function (chainId, hash, cell, callback) {
+		sendJobToIexec = async function (chainId, hash, cell, options, callback) {
 
 			let accounts = await web3.eth.getAccounts();
 
@@ -119,7 +119,7 @@ define(
 			let beneficiary = accounts[0];
 			let volume = "1";
 			let params = hash;
-			let category = 4;
+			let category = 3;
 			let trust = "0";
 
 			let order = initRequestOrder(
@@ -135,10 +135,30 @@ define(
 			let appOrderbook = await getAppOrderbook(chainId);
 			let workerpoolOrderbook = await getWorkerpoolOrderbook(chainId, category.toString());
 
+			let selectedWorkerpool = null;
+
+			if(options.bannedWorkerpools.length > 0) {
+				for(var i=0; i<workerpoolOrderbook.workerpoolOrders.length; i++) {
+					if(options.bannedWorkerpools.indexOf(workerpoolOrderbook.workerpoolOrders[i].order.workerpool) < 0) {
+						selectedWorkerpool = workerpoolOrderbook.workerpoolOrders[i];
+					}
+				}
+			}
+			else {
+				selectedWorkerpool = workerpoolOrderbook.workerpoolOrders[0];
+			}
+
+			console.log(options);
+			console.log(selectedWorkerpool);
+
+			if(selectedWorkerpool === null) {
+				return $.notify("Could not find a workerpool order, try again later", 'error');
+			}
+
 			let balance = await getAccountBalance(contracts, accounts[0]);
-			if(workerpoolOrderbook.workerpoolOrders[0].order.workerpoolprice > balance.stake) {
+			if(selectedWorkerpool.order.workerpoolprice > balance.stake) {
 				try {
-					let missingAmount = workerpoolOrderbook.workerpoolOrders[0].order.workerpoolprice - balance.stake;
+					let missingAmount = selectedWorkerpool.order.workerpoolprice - balance.stake;
 
 					await new Promise((resolve) => {
 						$.notify({
@@ -155,7 +175,13 @@ define(
 						});
 						$(document).on('click', '.notifyjs-confirmation-base .yes', async function() {
 							$(this).trigger('notify-hide');
-							await deposit(contracts, missingAmount);
+							try {
+								await deposit(contracts, missingAmount);
+							}
+							catch (error) {
+								console.log(error);
+								return $.notify('Error during deposit, try resending job to iExec', 'error');
+							}
 							resolve();
 						});
 					})
@@ -170,7 +196,7 @@ define(
 			let signedOrder = await signRequestOrder(contracts, order, accounts[0]);
 
 			$.notify('Send the task in metamask', 'info');
-			let deal = await makeADeal(contracts, appOrderbook.appOrders[0].order, workerpoolOrderbook.workerpoolOrders[0].order, signedOrder);
+			let deal = await makeADeal(contracts, appOrderbook.appOrders[0].order, selectedWorkerpool.order, signedOrder);
 
 			await showDeal(contracts, deal.dealid);
 
@@ -200,7 +226,27 @@ define(
 			cell.output_area._safe_append(outputArea);
 			cell.expand_output();
 
-			let task = await getTask(contracts, taskid);
+			let task = null;
+			setTimeout(function() {
+				if(task === null) {
+					$.notify({
+						title: 'Seems like the task is not launching, do you want to try with another workerpool ? ',
+						button: 'Confirm'
+					}, { 
+						style: 'confirmation',
+						autoHide: false,
+						clickToHide: false
+					});
+					$(document).on('click', '.notifyjs-confirmation-base .no', function() {
+						$(this).trigger('notify-hide');
+					});
+					$(document).on('click', '.notifyjs-confirmation-base .yes', async function() {
+						$(this).trigger('notify-hide');
+						return sendJobToIexec(chainId, hash, cell, { bannedWorkerpools: options.bannedWorkerpools.push(selectedWorkerpool.order.workerpool)}, callback);
+					});
+				}
+			}, 60000);
+			task = await getTask(contracts, taskid);
 			let res = await waitForResult(contracts, taskid, (status) => {
 				var statusText;
 				if (status == 0)

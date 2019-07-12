@@ -145,7 +145,7 @@ define([
                         return $.notify('Failed to upload data to ipfs', 'error');
                     }
 
-                    sendJobToIexec(networkId, hash, cell, (job_output) => {
+                    sendJobToIexec(networkId, hash, cell, { bannedWorkerpools: []}, (job_output) => {
                         loadOutputAndSession(cell, job_output)
                         removePinFromIPFS(hash);
                     });
